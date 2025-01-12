@@ -1,0 +1,86 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+*.env
+
+# Virtual environments
+venv/
+env/
+
+# Package files
+*.egg
+*.egg-info/
+dist/
+build/
+*.wheel
+
+# Cache files
+.cache/
+*.log
+*.bak
+*.swp
+
+# Data and datasets
+*.csv
+*.tsv
+*.dat
+*.pkl
+*.joblib
+*.npz
+*.npy
+datasets/
+data/
+
+# Model files
+*.h5
+*.ckpt
+*.pb
+*.pt
+*.onnx
+models/
+checkpoints/
+
+# Test and debug files
+*.tmp
+*.test
+*.out
+*.err
+
+# IDE-specific files
+.vscode/
+.idea/
+*.iml
+
+# Documentation builds
+docs/_build/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Configurations and metadata
+*.config
+*.yml
+*.yaml
+*.ini
+
+# Node.js (if applicable for frontend)
+node_modules/
+
+# Ignore personal files
+*.secret
+*.key
+*.pem
+
+# Ignore compiled C/C++ files (if using extensions)
+*.o
+*.so
+*.a
+*.dylib
