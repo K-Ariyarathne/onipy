@@ -24,14 +24,26 @@ df = df.iloc[:, 1:].assign(Survived=df.iloc[:, 0])
 
 print(df.head())
 
+import numpy as np
+import pandas as pd
 
 class DecisionTree:
     def __init__(self):
+        """
+        Initializes a DecisionTree instance.
+        The tree structure will be built and stored in `self.tree`.
+        """
         self.tree = None  # To store the tree structure
 
     def create_treeC45(self, data, target_column):
         """
         Creates a decision tree using the C4.5 algorithm.
+        
+        Args:
+        - data: A pandas DataFrame containing the dataset.
+        - target_column: The column name that holds the target (class) values.
+        
+        This method will start the tree building process by calling `build_tree`.
         """
         self.target_column = target_column
 
@@ -39,6 +51,20 @@ class DecisionTree:
         self.tree = self.build_tree(data)
 
     def build_tree(self, data):
+        """
+        Recursively builds the decision tree based on the dataset.
+        
+        Args:
+        - data: A pandas DataFrame containing the dataset to build the tree from.
+
+        Returns:
+        - A decision tree represented as a nested dictionary, where each node contains 
+          the feature to split on and the corresponding subtrees.
+          
+        Terminal conditions:
+        - All rows have the same target value: return the target value.
+        - No more features to split on: return the majority class.
+        """
         # Terminal condition: all rows have the same target value
         if len(data[self.target_column].unique()) == 1:
             return data[self.target_column].iloc[0]
@@ -89,7 +115,14 @@ class DecisionTree:
 
     def calculate_weighted_entropy(self, data, split_column):
         """
-        Calculates the weighted entropy for a column.
+        Calculates the weighted entropy for a given feature column.
+        
+        Args:
+        - data: A pandas DataFrame containing the dataset.
+        - split_column: The name of the column to evaluate for splitting.
+
+        Returns:
+        - The weighted entropy for the given column.
         """
         unique_values = data[split_column].unique()
         total_rows = len(data)
@@ -109,7 +142,14 @@ class DecisionTree:
 
     def calculate_entropy(self, probabilities, base=2):
         """
-        Calculates entropy for a set of probabilities.
+        Calculates the entropy for a set of probabilities.
+        
+        Args:
+        - probabilities: A list or array of probabilities.
+        - base: The logarithmic base to use. Default is 2 (binary entropy).
+
+        Returns:
+        - The calculated entropy value.
         """
         probabilities = np.array(probabilities)
         probabilities = probabilities[probabilities > 0]
@@ -128,11 +168,13 @@ class DecisionTree:
         Predicts the target value for a single row using the decision tree.
 
         Args:
-        - row: The input data row, typically a series or dictionary.
+        - row: The input data row, typically a pandas Series or dictionary.
         - tree: The current subtree or the full tree to use for prediction (default is None).
 
         Returns:
         - The predicted value based on the row's feature values.
+        
+        If the tree reaches a leaf node, the corresponding class value is returned.
         """
         # If no tree is provided, use the full tree (self.tree)
         if tree is None:
@@ -155,22 +197,35 @@ class DecisionTree:
         else:
             # If the feature value is not seen in the tree, return None
             return None
+
     def predict(self, dataset):
-        
+        """
+        Predicts the target values for a dataset using the decision tree.
+
+        Args:
+        - dataset: A pandas DataFrame containing the data to predict.
+
+        Returns:
+        - A pandas Series containing the predicted values for each row in the dataset.
+        """
         predictions = []
 
-        # Iterate over each row in the dataset
         for index, row in dataset.iterrows():
             # Predict the target value for the current row and append it to predictions
             predicted_value = self.predict_row(row)
             predictions.append(predicted_value)
 
-        # Return the predictions as a pandas Series
         return pd.Series(predictions, index=dataset.index)
 
     def display_tree(self, tree=None, indent=""):
         """
-        Recursively display the tree in a readable format.
+        Recursively displays the tree structure in a readable format.
+        
+        Args:
+        - tree: The decision tree to display (default is None, which uses `self.tree`).
+        - indent: The string to prepend to each line for indentation (default is an empty string).
+
+        Displays the tree by recursively printing each feature and corresponding values.
         """
         if tree is None:
             tree = self.tree
@@ -183,7 +238,6 @@ class DecisionTree:
                 for sub_key, sub_tree in value.items():
                     print(indent + f"  [{sub_key}]")
                     self.display_tree(sub_tree, indent + "    ")
-
 
 # Step 1: Shuffle the dataset using numpy
 shuffled_df = df.sample(frac=1, random_state=42).reset_index(drop=True)
