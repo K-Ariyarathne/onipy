@@ -76,12 +76,14 @@ class DecisionTree:
         tree = {highest_gain_col: {}}
 
         # Split the dataset based on the best column and recurse
-        for value in data[highest_gain_col].unique():
-            subset = data[data[highest_gain_col] == value].drop(
-                columns=[highest_gain_col]
-            )
-            subtree = self.build_tree(subset)
-            tree[highest_gain_col][value] = subtree
+        unique_values = data[highest_gain_col].unique()
+
+        for unique_value in unique_values:
+            filtered_data = data[data[highest_gain_col] == unique_value]
+            subset_without_column = filtered_data.drop(columns=[highest_gain_col])        
+               
+            subtree = self.build_tree(subset_without_column)
+            tree[highest_gain_col][unique_value] = subtree
 
         return tree
 
@@ -121,6 +123,51 @@ class DecisionTree:
 
         return -np.sum(probabilities * log_func(probabilities))
 
+    def predict_row(self, row, tree=None):
+        """
+        Predicts the target value for a single row using the decision tree.
+
+        Args:
+        - row: The input data row, typically a series or dictionary.
+        - tree: The current subtree or the full tree to use for prediction (default is None).
+
+        Returns:
+        - The predicted value based on the row's feature values.
+        """
+        # If no tree is provided, use the full tree (self.tree)
+        if tree is None:
+            tree = self.tree
+
+        # If tree is a leaf node, return the predicted value (the leaf value)
+        if not isinstance(tree, dict):
+            return tree
+
+        # Get the first feature from the tree (root feature)
+        root_feature = next(iter(tree))
+
+        # Get the value of the feature from the current row
+        feature_value = row[root_feature]
+
+        # Check if the feature value exists in the tree's options
+        if feature_value in tree[root_feature]:
+            # Recursively call predict on the subtree corresponding to the feature value
+            return self.predict_row(row, tree[root_feature][feature_value])
+        else:
+            # If the feature value is not seen in the tree, return None
+            return None
+    def predict(self, dataset):
+        
+        predictions = []
+
+        # Iterate over each row in the dataset
+        for index, row in dataset.iterrows():
+            # Predict the target value for the current row and append it to predictions
+            predicted_value = self.predict_row(row)
+            predictions.append(predicted_value)
+
+        # Return the predictions as a pandas Series
+        return pd.Series(predictions, index=dataset.index)
+
     def display_tree(self, tree=None, indent=""):
         """
         Recursively display the tree in a readable format.
@@ -138,7 +185,22 @@ class DecisionTree:
                     self.display_tree(sub_tree, indent + "    ")
 
 
+# Step 1: Shuffle the dataset using numpy
+shuffled_df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+
+# Step 2: Split the dataset into training and test sets (80-20 split)
+train_size = int(0.9 * len(shuffled_df))  # 80% for training
+train_df = shuffled_df[:train_size]
+test_df = shuffled_df[train_size:]
+
+# Step 3: Create and train the decision tree model
 dt = DecisionTree()
-dt.create_treeC45(df, "Survived")
-print("Generated Decision Tree:")
-dt.display_tree()
+dt.create_treeC45(train_df, "Survived")
+
+
+
+predictions = dt.predict(test_df.drop(columns=['Survived']))  
+actual = test_df['Survived']
+
+accuracy = (predictions == actual).mean()
+print(f"Accuracy: {accuracy * 100:.2f}%")
