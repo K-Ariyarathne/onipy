@@ -1,32 +1,6 @@
 import numpy as np
 import pandas as pd
 
-# Load the dataset
-df = pd.read_csv("Titanic-Dataset.csv")
-df = df.drop(columns=["PassengerId", "Name", "Cabin", "Embarked", "Ticket"])
-
-mean_age = df["Age"].mean()
-df["Age"] = df["Age"].fillna(mean_age)
-
-age_bins = [0, 12, 18, 60, np.inf]
-age_labels = ["Child", "Teen", "Adult", "Senior"]
-df["Age"] = pd.cut(df["Age"], bins=age_bins, labels=age_labels, right=False)
-
-fare_bins = [-1, 7.91, 14.454, 31.0, np.inf]
-fare_labels = ["Low", "Medium", "High", "Very High"]
-df["Fare"] = pd.cut(df["Fare"], bins=fare_bins, labels=fare_labels, right=False)
-
-df["Age"] = df["Age"].cat.codes
-df["Fare"] = df["Fare"].cat.codes
-df["Sex"] = pd.factorize(df["Sex"])[0]
-
-df = df.iloc[:, 1:].assign(Survived=df.iloc[:, 0])
-
-print(df.head())
-
-import numpy as np
-import pandas as pd
-
 class DecisionTree:
     def __init__(self):
         """
@@ -35,7 +9,7 @@ class DecisionTree:
         """
         self.tree = None  # To store the tree structure
 
-    def create_treeC45(self, data, target_column):
+    def create_treeID3(self, data, target_column , C45 = False):
         """
         Creates a decision tree using the C4.5 algorithm.
         
@@ -48,19 +22,21 @@ class DecisionTree:
         self.target_column = target_column
 
         # Recursively build the tree
-        self.tree = self.build_tree(data)
+        self.tree = self.build_tree(data,C45)
 
-    def build_tree(self, data):
+
+    def build_tree(self, data, C45=False):
         """
-        Recursively builds the decision tree based on the dataset.
-        
+        Recursively builds the decision tree based on the dataset using either ID3 or C4.5.
+
         Args:
         - data: A pandas DataFrame containing the dataset to build the tree from.
+        - C45: Boolean flag to indicate whether to use C4.5 (True) or ID3 (False).
 
         Returns:
         - A decision tree represented as a nested dictionary, where each node contains 
-          the feature to split on and the corresponding subtrees.
-          
+        the feature to split on and the corresponding subtrees.
+
         Terminal conditions:
         - All rows have the same target value: return the target value.
         - No more features to split on: return the majority class.
@@ -85,11 +61,19 @@ class DecisionTree:
             if col == self.target_column:  # Skip the target column
                 continue
 
-            # Calculate information gain
+            # Calculate weighted entropy for ID3
             weighted_entropy = self.calculate_weighted_entropy(data, col)
-            info_gain = df_entropy - weighted_entropy
 
-            # Track the column with the highest gain
+            # Calculate information gain or gain ratio depending on C4.5 flag
+            if not C45:
+                info_gain = df_entropy - weighted_entropy  # ID3 uses information gain
+            else:
+                # Calculate split information for C4.5
+                split_info = self.calculate_split_information(data, col)
+                # Gain Ratio = Information Gain / Split Information
+                info_gain = (df_entropy - weighted_entropy) / split_info if split_info != 0 else 0
+
+            # Track the column with the highest gain (or gain ratio)
             if info_gain > highest_gain:
                 highest_gain = info_gain
                 highest_gain_col = col
@@ -107,11 +91,34 @@ class DecisionTree:
         for unique_value in unique_values:
             filtered_data = data[data[highest_gain_col] == unique_value]
             subset_without_column = filtered_data.drop(columns=[highest_gain_col])        
-               
-            subtree = self.build_tree(subset_without_column)
+            subtree = self.build_tree(subset_without_column, C45)
             tree[highest_gain_col][unique_value] = subtree
 
         return tree
+
+    def calculate_split_information(self, data, column):
+        """
+        Calculates the split information for a given feature (used in C4.5 algorithm).
+        
+        Args:
+        - data: A pandas DataFrame containing the dataset.
+        - column: The name of the column to calculate the split information for.
+
+        Returns:
+        - The calculated split information value.
+        """
+        unique_values = data[column].unique()
+        total_rows = len(data)
+        split_info = 0
+
+        for value in unique_values:
+            subset = data[data[column] == value]
+            subset_weight = len(subset) / total_rows
+            if subset_weight > 0:
+                split_info -= subset_weight * np.log2(subset_weight)
+
+        return split_info
+
 
     def calculate_weighted_entropy(self, data, split_column):
         """
@@ -239,22 +246,3 @@ class DecisionTree:
                     print(indent + f"  [{sub_key}]")
                     self.display_tree(sub_tree, indent + "    ")
 
-# Step 1: Shuffle the dataset using numpy
-shuffled_df = df.sample(frac=1, random_state=42).reset_index(drop=True)
-
-# Step 2: Split the dataset into training and test sets (80-20 split)
-train_size = int(0.9 * len(shuffled_df))  # 80% for training
-train_df = shuffled_df[:train_size]
-test_df = shuffled_df[train_size:]
-
-# Step 3: Create and train the decision tree model
-dt = DecisionTree()
-dt.create_treeC45(train_df, "Survived")
-
-
-
-predictions = dt.predict(test_df.drop(columns=['Survived']))  
-actual = test_df['Survived']
-
-accuracy = (predictions == actual).mean()
-print(f"Accuracy: {accuracy * 100:.2f}%")
