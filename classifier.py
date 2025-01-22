@@ -180,7 +180,7 @@ class DecisionTree:
         return -np.sum(probabilities * log_func(probabilities))
 
 
-    def prune_tree(self,  validation_data,tree = None):
+    def prune_tree(self, validation_data, tree=None):
         """
         Prunes the decision tree using a validation dataset to improve generalization.
 
@@ -193,30 +193,41 @@ class DecisionTree:
         """
         if tree is None:
             tree = self.tree
-        if not isinstance(tree, dict):  # Base case: if the tree is a leaf
+
+        # Base case: if the tree is a leaf
+        if not isinstance(tree, dict):
             return tree
 
+        # Get the root feature and its subtrees
         root = list(tree.keys())[0]
         subtrees = tree[root]
 
         # Recursively prune subtrees
         for value, subtree in subtrees.items():
             subset = validation_data[validation_data[root] == value]
-            subtrees[value] = self.prune_tree(subtree, subset)
 
-        # Evaluate the current tree and a potential leaf replacement
-        original_accuracy = self.calculate_accuracy(tree, validation_data)
-        majority_class = validation_data[self.target_column].mode()[0]
-        leaf_accuracy = (
-            (validation_data[self.target_column] == majority_class).mean()
-        )
+            # If the subset is empty, skip pruning this branch
+            if subset.empty:
+                continue
 
-        # Replace subtree with a leaf if it improves accuracy
+            # Recursively prune the current subtree
+            subtrees[value] = self.prune_tree(subset, subtree)
+
+        # Evaluate whether to replace subtree with a leaf
+        predictions = self.predict(validation_data.drop(columns=[self.target_column]))
+        original_accuracy = (predictions == validation_data[self.target_column]).mean()
+
+        if not validation_data.empty:
+            majority_class = validation_data[self.target_column].mode()[0]
+            leaf_accuracy = (validation_data[self.target_column] == majority_class).mean()
+        else:
+            leaf_accuracy = 0  # No data means no accuracy
+
+        # Replace the subtree with a leaf if it improves accuracy
         if leaf_accuracy >= original_accuracy:
             return majority_class
 
         return tree
-
 
 
     def predict_row(self, row, tree=None):
@@ -234,11 +245,13 @@ class DecisionTree:
         """
         # If no tree is provided, use the full tree (self.tree)
         if tree is None:
+            
             tree = self.tree
 
         # If tree is a leaf node, return the predicted value (the leaf value)
         if not isinstance(tree, dict):
             return tree
+
 
         # Get the first feature from the tree (root feature)
         root_feature = next(iter(tree))
@@ -254,7 +267,7 @@ class DecisionTree:
             # If the feature value is not seen in the tree, return None
             return None
 
-    def predict(self, dataset, tree = None):
+    def predict(self, dataset, decision_tree = None):
         """
         Predicts the target values for a dataset using the decision tree.
 
@@ -268,7 +281,7 @@ class DecisionTree:
 
         for index, row in dataset.iterrows():
             # Predict the target value for the current row and append it to predictions
-            predicted_value = self.predict_row(row,tree)
+            predicted_value = self.predict_row(row,tree = decision_tree)
             predictions.append(predicted_value)
 
         return pd.Series(predictions, index=dataset.index)
@@ -296,17 +309,4 @@ class DecisionTree:
                     self.display_tree(sub_tree, indent + "    ")
 
 
-    def calculate_accuracy(self, tree, data):
-        """
-        Calculates the accuracy of the decision tree on the given dataset.
-
-        Args:
-        - tree: The decision tree to evaluate.
-        - data: A pandas DataFrame containing the data to evaluate.
-
-        Returns:
-        - The accuracy as a float value.
-        """
-        predictions = data.apply(lambda row: self.predict_row(row, tree), axis=1)
-        return (predictions == data[self.target_column]).mean()
-
+   

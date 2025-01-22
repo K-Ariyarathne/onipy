@@ -37,13 +37,22 @@ test_df = shuffled_df[train_size:]
 dt = DecisionTree()
 dt.create_treeID3(train_df, "Survived", C45=True)
 
+# dt.display_tree()
 
 
 predictions = dt.predict(test_df.drop(columns=['Survived']))  
+
 actual = test_df['Survived']
 
 accuracy = (predictions == actual).mean()
 print(f"Accuracy: {accuracy * 100:.2f}%")
 
 newTree = dt.prune_tree(validation_data=test_df)
-print(f"New Tree: {newTree})")
+
+
+predictions = dt.predict(test_df.drop(columns=['Survived']), decision_tree = newTree)  
+
+actual = test_df['Survived']
+
+accuracy = (predictions == actual).mean()
+print(f"Accuracy: {accuracy * 100:.2f}%")
