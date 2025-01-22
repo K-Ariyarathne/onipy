@@ -28,7 +28,6 @@ build/
 *.swp
 
 # Data and datasets
-*.csv
 *.tsv
 *.dat
 *.pkl

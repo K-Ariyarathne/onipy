@@ -44,3 +44,6 @@ actual = test_df['Survived']
 
 accuracy = (predictions == actual).mean()
 print(f"Accuracy: {accuracy * 100:.2f}%")
+
+newTree = dt.prune_tree(validation_data=test_df)
+print(f"New Tree: {newTree})")

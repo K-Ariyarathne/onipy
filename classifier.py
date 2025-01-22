@@ -31,8 +31,6 @@ class DecisionTree:
         # Recursively build the tree using training dataset
         self.tree = self.build_tree(training_data,C45)
 
-        #Prune the tree using the validation dataset
-        self.tree = self.prune_tree(self.tree, validation_data)
 
 
 
@@ -182,7 +180,7 @@ class DecisionTree:
         return -np.sum(probabilities * log_func(probabilities))
 
 
-    def prune_tree(self, tree, validation_data):
+    def prune_tree(self,  validation_data,tree = None):
         """
         Prunes the decision tree using a validation dataset to improve generalization.
 
@@ -193,6 +191,8 @@ class DecisionTree:
         Returns:
         - The pruned decision tree.
         """
+        if tree is None:
+            tree = self.tree
         if not isinstance(tree, dict):  # Base case: if the tree is a leaf
             return tree
 
@@ -254,7 +254,7 @@ class DecisionTree:
             # If the feature value is not seen in the tree, return None
             return None
 
-    def predict(self, dataset):
+    def predict(self, dataset, tree = None):
         """
         Predicts the target values for a dataset using the decision tree.
 
@@ -268,7 +268,7 @@ class DecisionTree:
 
         for index, row in dataset.iterrows():
             # Predict the target value for the current row and append it to predictions
-            predicted_value = self.predict_row(row)
+            predicted_value = self.predict_row(row,tree)
             predictions.append(predicted_value)
 
         return pd.Series(predictions, index=dataset.index)
