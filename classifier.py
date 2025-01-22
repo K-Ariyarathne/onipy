@@ -9,6 +9,7 @@ class DecisionTree:
         """
         self.tree = None  # To store the tree structure
 
+
     def create_treeID3(self, data, target_column ,validation_split=0.2, C45 = False):
         """
         Creates a decision tree using the C4.5 algorithm.
@@ -17,7 +18,7 @@ class DecisionTree:
         - data: A pandas DataFrame containing the dataset.
         - target_column: The column name that holds the target (class) values.
         - validation_split : The fraction of data to use for validation(default is 0.2)
-                
+
         This method will start the tree building process by calling `build_tree`.
         """
         self.target_column = target_column
@@ -180,6 +181,7 @@ class DecisionTree:
 
         return -np.sum(probabilities * log_func(probabilities))
 
+
     def prune_tree(self, tree, validation_data):
         """
         Prunes the decision tree using a validation dataset to improve generalization.
@@ -214,6 +216,7 @@ class DecisionTree:
             return majority_class
 
         return tree
+
 
 
     def predict_row(self, row, tree=None):
@@ -292,6 +295,7 @@ class DecisionTree:
                     print(indent + f"  [{sub_key}]")
                     self.display_tree(sub_tree, indent + "    ")
 
+
     def calculate_accuracy(self, tree, data):
         """
         Calculates the accuracy of the decision tree on the given dataset.
@@ -305,3 +309,4 @@ class DecisionTree:
         """
         predictions = data.apply(lambda row: self.predict_row(row, tree), axis=1)
         return (predictions == data[self.target_column]).mean()
+
