@@ -9,20 +9,31 @@ class DecisionTree:
         """
         self.tree = None  # To store the tree structure
 
-    def create_treeID3(self, data, target_column , C45 = False):
+
+    def create_treeID3(self, data, target_column ,validation_split=0.2, C45 = False):
         """
         Creates a decision tree using the C4.5 algorithm.
         
         Args:
         - data: A pandas DataFrame containing the dataset.
         - target_column: The column name that holds the target (class) values.
-        
+        - validation_split : The fraction of data to use for validation(default is 0.2)
+
         This method will start the tree building process by calling `build_tree`.
         """
         self.target_column = target_column
 
-        # Recursively build the tree
-        self.tree = self.build_tree(data,C45)
+        #Split the data into training ans validation sets
+        validation_size = int(len(data) * validation_split)
+        validation_data = data.sample(validation_size, random_state=42)
+        training_data = data.drop(validation_data.index)
+
+        # Recursively build the tree using training dataset
+        self.tree = self.build_tree(training_data,C45)
+
+        #Prune the tree using the validation dataset
+        self.tree = self.prune_tree(self.tree, validation_data)
+
 
 
     def build_tree(self, data, C45=False):
@@ -170,6 +181,44 @@ class DecisionTree:
 
         return -np.sum(probabilities * log_func(probabilities))
 
+
+    def prune_tree(self, tree, validation_data):
+        """
+        Prunes the decision tree using a validation dataset to improve generalization.
+
+        Args:
+        - tree: The decision tree to prune.
+        - validation_data: A pandas DataFrame used for validation.
+
+        Returns:
+        - The pruned decision tree.
+        """
+        if not isinstance(tree, dict):  # Base case: if the tree is a leaf
+            return tree
+
+        root = list(tree.keys())[0]
+        subtrees = tree[root]
+
+        # Recursively prune subtrees
+        for value, subtree in subtrees.items():
+            subset = validation_data[validation_data[root] == value]
+            subtrees[value] = self.prune_tree(subtree, subset)
+
+        # Evaluate the current tree and a potential leaf replacement
+        original_accuracy = self.calculate_accuracy(tree, validation_data)
+        majority_class = validation_data[self.target_column].mode()[0]
+        leaf_accuracy = (
+            (validation_data[self.target_column] == majority_class).mean()
+        )
+
+        # Replace subtree with a leaf if it improves accuracy
+        if leaf_accuracy >= original_accuracy:
+            return majority_class
+
+        return tree
+
+
+
     def predict_row(self, row, tree=None):
         """
         Predicts the target value for a single row using the decision tree.
@@ -245,4 +294,19 @@ class DecisionTree:
                 for sub_key, sub_tree in value.items():
                     print(indent + f"  [{sub_key}]")
                     self.display_tree(sub_tree, indent + "    ")
+
+
+    def calculate_accuracy(self, tree, data):
+        """
+        Calculates the accuracy of the decision tree on the given dataset.
+
+        Args:
+        - tree: The decision tree to evaluate.
+        - data: A pandas DataFrame containing the data to evaluate.
+
+        Returns:
+        - The accuracy as a float value.
+        """
+        predictions = data.apply(lambda row: self.predict_row(row, tree), axis=1)
+        return (predictions == data[self.target_column]).mean()
 
